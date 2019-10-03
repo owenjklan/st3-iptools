@@ -7,8 +7,6 @@ import sublime
 from sublime import error_message, message_dialog, status_message
 import sublime_plugin
 
-sys.path.append("/usr/lib/python3.7/site-packages")
-
 
 global requests
 
