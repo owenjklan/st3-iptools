@@ -48,6 +48,14 @@ def plugin_loaded():
         print("Requests import successful")
 
 
+def get_settings_path():
+    """
+    Convenience function to provide the fully resolved path to this
+    plugin's settings file.
+    """
+    return os.path.join(sublime.packages_path(), SETTINGS_FILE)
+
+
 def geo_ip_lookup(ip):
     GEOIP_URL = "https://ipinfo.io/{}/json"
 
@@ -73,10 +81,7 @@ def make_whois_request(lookup_target):
         error_message((
             "No WHOIS lookup URL is defined!\n"
             "Please specify the 'whois_lookup_url' in the settings file.\n"
-            "Settings file: {}.".format(
-                os.path.join(
-                    sublime.packages_path(),
-                    SETTINGS_FILE)))
+            "Settings file: {}.".format(get_settings_path()))
         )
         return None
 
@@ -114,10 +119,7 @@ def get_addresses(hostname):
         error_message((
             "No IPv4 Address lookup command is defined!\n"
             "Please specify the 'ip_lookup_cmd' in the settings file.\n"
-            "Settings file: {}.".format(
-                os.path.join(
-                    sublime.packages_path(),
-                    SETTINGS_FILE)))
+            "Settings file: {}.".format(get_settings_path()))
         )
         return None
 
