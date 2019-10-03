@@ -11,6 +11,8 @@ import sublime_plugin
 global requests
 
 
+SETTINGS_FILE = "IPTools.sublime-settings"
+
 IP_INFO_TEMPLATE = """
 <div style="color: black; background-color: white;">
 <h3>IP Info for: {ipaddr}</h3>
@@ -64,9 +66,23 @@ def make_whois_request(lookup_target):
     """
     Make a WHOIS request against https://whois.com
     """
-    WHOIS_URL = "https://whois.com/search.php?query={}"
+    settings = sublime.load_settings(SETTINGS_FILE)
+
+    whois_url = settings.get("whois_lookup_url")
+    if whois_url is None:
+        error_message((
+            "No WHOIS lookup URL is defined!\n"
+            "Please specify the 'whois_lookup_url' in the settings file.\n"
+            "Settings file: {}.".format(
+                os.path.join(
+                    sublime.packages_path(),
+                    SETTINGS_FILE)))
+        )
+        return None
+
     target = lookup_target.strip()
-    response = requests.get(WHOIS_URL.format(target))
+    response = requests.get(sublime.expand_variables(
+        whois_url, {"lookup_target": target}))
 
     if response.status_code != 200:
         error_message("Failed WHOIS look up on '{}'".format(target))
@@ -89,7 +105,7 @@ def extract_raw_whois(html_content):
 
 def get_addresses(hostname):
     hostname = hostname.strip()
-    settings = sublime.load_settings("IPTools.sublime-settings")
+    settings = sublime.load_settings(SETTINGS_FILE)
 
     cmd = settings.get("ip_lookup_cmd")
 
@@ -101,7 +117,7 @@ def get_addresses(hostname):
             "Settings file: {}.".format(
                 os.path.join(
                     sublime.packages_path(),
-                    "IPTools.sublime-settings")))
+                    SETTINGS_FILE)))
         )
         return None
 
