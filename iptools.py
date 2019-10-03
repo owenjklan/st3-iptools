@@ -9,7 +9,8 @@ import sublime_plugin
 
 sys.path.append("/usr/lib/python3.7/site-packages")
 
-# from lxml.etree import ElementTree as ET
+
+global requests
 
 
 IP_INFO_TEMPLATE = """
@@ -34,7 +35,8 @@ def modify_sys_path(newpath):
 
 
 def plugin_loaded():
-    return  # Dead code for now
+    global requests
+
     settings = sublime.load_settings("IPTools.sublime-settings")
     py3_path = settings.get("python_3_path")
     print("Found python3 system packages path: {}".format(py3_path))
@@ -42,7 +44,7 @@ def plugin_loaded():
         modify_sys_path(py3_path)
 
         # Import our system-provided custom modules, like Requests
-        import_module("requests")
+        requests = import_module("requests")
         print("Requests import successful")
 
 
