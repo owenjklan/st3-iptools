@@ -23,6 +23,25 @@ IP_INFO_TEMPLATE = """
 """
 
 
+# Begin config validator functions
+def check_py3_path(value):
+    pass
+
+
+def check_ip_lookup_cmd(value):
+    pass
+# End config validator functions
+
+
+# This dictionary specifies additional functions to do in-depth validation
+# of plugin settings. For instance, there may be a Python 3 path defined,
+# but does it actually exist and is it actually a directory?
+config_validators = {
+    "python_3_path": check_py3_path,
+    "ip_lookup_cmd": check_ip_lookup_cmd,
+}
+
+
 def get_selections(view):
     sel = view.sel()
     strs = [view.substr(s) for s in sel]
@@ -183,3 +202,20 @@ class WhoisLookup(sublime_plugin.TextCommand):
         target = get_selections(self.view)[0]
         if target:
             make_whois_request(target)
+
+
+class ValidateIpToolsConfigCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        settings = sublime.load_settings(SETTINGS_FILE)
+
+        whois_url = settings.get("whois_lookup_url")
+        ip_lookup_cmd = settings.get("ip_lookup_cmd")
+        python_3_path = settings.get("python_3_path")
+
+        python_3_path_defined = "Yes" if python_3_path else "No"
+        whois_url_defined = "Yes" if whois_url else "No"
+        ip_lookup_cmd_defined = "Yes" if ip_lookup_cmd else "No"
+
+        print("Python 3 Path:         {}".format(python_3_path_defined))
+        print("WHOIS URL:             {}".format(whois_url_defined))
+        print("DNS IP Lookup Command: {}".format(ip_lookup_cmd_defined))

@@ -14,6 +14,13 @@
             {
                 "caption": "WHOIS Lookup",
                 "command": "whois_lookup"
+            },
+            {
+                "caption": "-",
+            },
+            {
+                "caption": "Validate Settings",
+                "command": "validate_ip_tools_config"
             }
         ]
     }
