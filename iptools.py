@@ -1,13 +1,15 @@
+from importlib import import_module
+import os
 import sys
 from subprocess import check_output, CalledProcessError
 
+import sublime
 from sublime import error_message, message_dialog, status_message
 import sublime_plugin
 
 sys.path.append("/usr/lib/python3.7/site-packages")
 
-import requests
-from lxml.etree import ElementTree as ET
+# from lxml.etree import ElementTree as ET
 
 
 IP_INFO_TEMPLATE = """
@@ -40,7 +42,7 @@ def plugin_loaded():
         modify_sys_path(py3_path)
 
         # Import our system-provided custom modules, like Requests
-        import requests
+        import_module("requests")
         print("Requests import successful")
 
 
@@ -87,21 +89,38 @@ def extract_raw_whois(html_content):
 
 def get_addresses(hostname):
     hostname = hostname.strip()
+    settings = sublime.load_settings("IPTools.sublime-settings")
 
-    cmd = [
-        "dig", "-t", "a", hostname, "+short"
-    ]
+    cmd = settings.get("ip_lookup_cmd")
 
+    # Do we actually have a lookup command configured?
+    if cmd is None:
+        error_message((
+            "No IPv4 Address lookup command is defined!\n"
+            "Please specify the 'ip_lookup_cmd' in the settings file.\n"
+            "Settings file: {}.".format(
+                os.path.join(
+                    sublime.packages_path(),
+                    "IPTools.sublime-settings")))
+        )
+        return None
+
+    # Take our single string command line and split into the 
+    cmd = sublime.expand_variables(cmd, {"hostname": hostname})
+    command = cmd.split()
+
+    print("Dig IP lookup: {}".format(command))
     print("Performing IPv4 address lookup on: {}".format(hostname))
 
     try:
-        output = check_output(cmd)
+        output = check_output(command)
     except CalledProcessError as cpe:
         status_message(str(cpe))
         return None
-    except FileNotFoundError as fnfe:
-        error_message("Failed performing DNS lookup. Do you have the 'dig' tool installed?")
-        return None
+    # except FileNotFoundError as fnfe:
+    #     error_message(("Failed performing DNS lookup!\n"
+    #         "Your configured 'ip_lookup_cmd' doesn't apper to work."))
+    #     return None
 
     return [l.decode('utf-8') for l in output.splitlines()]
 
@@ -133,9 +152,11 @@ class DnsIpLookup(sublime_plugin.TextCommand):
         hostname = get_selections(self.view)[0]
         addresses = get_addresses(hostname)
         if addresses is not None:
-            self.view.show_popup("\n".join(addresses))
+            self.view.show_popup("\n".join(addresses),
+                                 flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY)
         else:
-            status_message(("Either this name does not resolve or another "
+            status_message((
+                "Either this name does not resolve or another "
                 "error has occurred. Check the console for more details."))
 
 
