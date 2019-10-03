@@ -1,0 +1,20 @@
+[
+    {
+        "caption": "IP Tools",
+        "children":
+        [
+            {
+                "caption": "Geo IP Lookup",
+                "command": "geo_ip_lookup"
+            },
+            {
+                "caption": "IPv4 DNS Lookup",
+                "command": "dns_ip_lookup"
+            },
+            {
+                "caption": "WHOIS Lookup",
+                "command": "whois_lookup"
+            }
+        ]
+    }
+]
