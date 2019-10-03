@@ -14,11 +14,15 @@ global requests
 SETTINGS_FILE = "IPTools.sublime-settings"
 
 IP_INFO_TEMPLATE = """
-<div style="color: black; background-color: white;">
-<h3>IP Info for: {ipaddr}</h3>
-<p><strong>Country</strong> {country}</p>
-<p><strong>Organisation</strong> {org}</p>
-<p><strong>Location</strong> {loc}</p>
+<div style="color: black; background-color: white; padding: 10px;">
+    <h3>IP Info for: {ipaddr}</h3>
+    <strong>Host Name</strong> {hostname} <a href='{hostname}'>Copy</a><br>
+    <strong>Organisation</strong> {org} <a href='{org}'>Copy</a><br>
+    <strong>City</strong> {city} <a href='{city}'>Copy</a><br>
+    <strong>Region</strong> {region} <a href='{region}'>Copy</a><br>
+    <strong>Country</strong> {country} <a href='{country}'>Copy</a><br>
+    <strong>Time Zone</strong> {timezone} <a href='{timezone}'>Copy</a><br>
+    <strong>Location</strong> {loc} <a href='{loc}'>Copy</a>
 </div>
 """
 
@@ -168,20 +172,39 @@ class GeoIpLookupCommand(sublime_plugin.TextCommand):
         ip_info = geo_ip_lookup(ip_addr)
 
         if ip_info is None:
-            error_message("No results were returned for '{}'".format(ip))
-            status_message("No results were returned for '{}'".format(ip))
+            error_message("No results were returned for '{}'".format(ip_addr))
+            status_message("No results were returned for '{}'".format(ip_addr))
             return
 
-        country_str = ip_info['country'] if 'country' in ip_info else '<Not specified>'
-        org_str = ip_info['org'] if 'org' in ip_info else '<Not specified>'
-        loc_str = ip_info['loc'] if 'loc' in ip_info else '<Not specified>'
+        country_str = self.extract_geoip_property(ip_info, "country")
+        org_str = self.extract_geoip_property(ip_info, "org")
+        loc_str = self.extract_geoip_property(ip_info, "loc")
+        city_str = self.extract_geoip_property(ip_info, "city")
+        region_str = self.extract_geoip_property(ip_info, "region")
+        timezone_str = self.extract_geoip_property(ip_info, "timezone")
+        hostname_str = self.extract_geoip_property(ip_info, "hostname")
 
         html_content = IP_INFO_TEMPLATE.format(
             ipaddr=ip_addr,
+            hostname=hostname_str,
+            city=city_str,
+            region=region_str,
             country=country_str,
+            timezone=timezone_str,
             org=org_str,
             loc=loc_str)
-        self.view.show_popup(html_content, max_width=400, max_height=500)
+        self.view.show_popup(
+            html_content, on_navigate=self.copy_to_clipboard,
+            max_width=400, max_height=500)
+
+    def copy_to_clipboard(self, href_content):
+        if href_content:
+            sublime.set_clipboard(href_content)
+            self.view.hide_popup()
+
+    def extract_geoip_property(self, result, propname):
+        outvalue = result[propname] if propname in result else '<Not specified>'
+        return outvalue
 
 
 class DnsIpLookup(sublime_plugin.TextCommand):
@@ -189,12 +212,22 @@ class DnsIpLookup(sublime_plugin.TextCommand):
         hostname = get_selections(self.view)[0]
         addresses = get_addresses(hostname)
         if addresses is not None:
-            self.view.show_popup("\n".join(addresses),
-                                 flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY)
+            out_lines = []
+            for address in addresses:
+                out_lines.append("{} <a href='{}'>Copy</a>".format(
+                    address, address))
+            self.view.show_popup("\n".join(out_lines),
+                                 flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
+                                 on_navigate=self.copy_to_clipboard)
         else:
             status_message((
                 "Either this name does not resolve or another "
                 "error has occurred. Check the console for more details."))
+
+    def copy_to_clipboard(self, href_content):
+        if href_content:
+            sublime.set_clipboard(href_content)
+            self.view.hide_popup()
 
 
 class WhoisLookup(sublime_plugin.TextCommand):
