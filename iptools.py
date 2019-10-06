@@ -1,10 +1,10 @@
 from importlib import import_module
 import os
 import sys
-from subprocess import check_output, CalledProcessError
+from subprocess import check_output, CalledProcessError, FileNotFoundError
 
 import sublime
-from sublime import error_message, message_dialog, status_message
+from sublime import error_message, status_message
 import sublime_plugin
 
 
@@ -158,10 +158,11 @@ def get_addresses(hostname):
     except CalledProcessError as cpe:
         status_message(str(cpe))
         return None
-    # except FileNotFoundError as fnfe:
-    #     error_message(("Failed performing DNS lookup!\n"
-    #         "Your configured 'ip_lookup_cmd' doesn't apper to work."))
-    #     return None
+    except FileNotFoundError as fnfe:
+        error_message((
+            "Failed performing DNS lookup!\n"
+            "Your configured 'ip_lookup_cmd' doesn't apper to exist!."))
+        return None
 
     return [l.decode('utf-8') for l in output.splitlines()]
 
