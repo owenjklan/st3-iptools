@@ -195,7 +195,8 @@ class GeoIpLookupCommand(sublime_plugin.TextCommand):
             loc=loc_str)
         self.view.show_popup(
             html_content, on_navigate=self.copy_to_clipboard,
-            max_width=400, max_height=500)
+            max_width=400, max_height=500,
+            flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,)
 
     def copy_to_clipboard(self, href_content):
         if href_content:
