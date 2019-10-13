@@ -25,11 +25,6 @@ IP_INFO_TEMPLATE = """
 """
 
 
-# Begin config validator functions
-def check_py3_path(value):
-    pass
-
-
 def check_ip_lookup_cmd(value):
     pass
 # End config validator functions
@@ -39,7 +34,6 @@ def check_ip_lookup_cmd(value):
 # of plugin settings. For instance, there may be a Python 3 path defined,
 # but does it actually exist and is it actually a directory?
 config_validators = {
-    "python_3_path": check_py3_path,
     "ip_lookup_cmd": check_ip_lookup_cmd,
 }
 
