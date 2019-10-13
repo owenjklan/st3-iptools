@@ -7,6 +7,8 @@ from sublime import error_message, status_message
 import sublime_plugin
 
 import requests
+import bs4
+from bs4 import BeautifulSoup
 
 
 SETTINGS_FILE = "IPTools.sublime-settings"
@@ -75,7 +77,7 @@ def geo_ip_lookup(ip):
     return ip_info
 
 
-def make_whois_request(lookup_target):
+def make_whois_request(view_edit, window, lookup_target):
     """
     Make a WHOIS request against https://whois.com
     """
@@ -91,8 +93,13 @@ def make_whois_request(lookup_target):
         return None
 
     target = lookup_target.strip()
-    response = requests.get(sublime.expand_variables(
-        whois_url, {"lookup_target": target}))
+    try:
+        response = requests.get(sublime.expand_variables(
+            whois_url, {"lookup_target": target}),
+            timeout=5)
+    except requests.exceptions.ReadTimeout:
+        error_message("Timeout reading WHOIS response!")
+        return
 
     if response.status_code != 200:
         error_message("Failed WHOIS look up on '{}'".format(target))
@@ -102,15 +109,17 @@ def make_whois_request(lookup_target):
         return
 
     show_content = extract_raw_whois(response.content)
+    new_view = window.new_file()
+    new_view.set_name("WHOIS: {}".format(lookup_target))
+    new_view.insert(view_edit, 0, show_content)
 
 
 def extract_raw_whois(html_content):
     """
     Based on output of searches from https://whois.com
     """
-    root = ET.fromstring(html_content)
-    whois_raw = root.findall("//pre[@id='registryData']")
-    print(whois_raw)
+    soup = BeautifulSoup(html_content)
+    return soup.find("pre", {"id": "registryData"}).text
 
 
 def get_addresses(hostname):
@@ -218,7 +227,7 @@ class WhoisLookup(sublime_plugin.TextCommand):
     def run(self, edit):
         target = get_selections(self.view)[0]
         if target:
-            make_whois_request(target)
+            make_whois_request(edit, self.view.window(), target)
 
 
 class ValidateIpToolsConfigCommand(sublime_plugin.TextCommand):
