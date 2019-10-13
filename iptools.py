@@ -1,14 +1,12 @@
-from importlib import import_module
 import os
 import sys
-from subprocess import check_output, CalledProcessError, FileNotFoundError
+from subprocess import check_output, CalledProcessError
 
 import sublime
 from sublime import error_message, status_message
 import sublime_plugin
 
-
-global requests
+import requests
 
 
 SETTINGS_FILE = "IPTools.sublime-settings"
@@ -58,17 +56,7 @@ def modify_sys_path(newpath):
 
 
 def plugin_loaded():
-    global requests
-
-    settings = sublime.load_settings("IPTools.sublime-settings")
-    py3_path = settings.get("python_3_path")
-    print("Found python3 system packages path: {}".format(py3_path))
-    if py3_path:
-        modify_sys_path(py3_path)
-
-        # Import our system-provided custom modules, like Requests
-        requests = import_module("requests")
-        print("Requests import successful")
+    pass
 
 
 def get_settings_path():
