@@ -77,42 +77,6 @@ def geo_ip_lookup(ip):
     return ip_info
 
 
-def get_addresses(hostname):
-    hostname = hostname.strip()
-    settings = sublime.load_settings(SETTINGS_FILE)
-
-    cmd = settings.get("ip_lookup_cmd")
-
-    # Do we actually have a lookup command configured?
-    if cmd is None:
-        error_message((
-            "No IPv4 Address lookup command is defined!\n"
-            "Please specify the 'ip_lookup_cmd' in the settings file.\n"
-            "Settings file: {}.".format(get_settings_path()))
-        )
-        return None
-
-    # Take our single string command line and split into the 
-    cmd = sublime.expand_variables(cmd, {"hostname": hostname})
-    command = cmd.split()
-
-    print("Dig IP lookup: {}".format(command))
-    print("Performing IPv4 address lookup on: {}".format(hostname))
-
-    try:
-        output = check_output(command)
-    except CalledProcessError as cpe:
-        status_message(str(cpe))
-        return None
-    except FileNotFoundError as fnfe:
-        error_message((
-            "Failed performing DNS lookup!\n"
-            "Your configured 'ip_lookup_cmd' doesn't apper to exist!."))
-        return None
-
-    return [l.decode('utf-8') for l in output.splitlines()]
-
-
 class GeoIpLookupCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         ip_addr = get_selections(self.view)[0]
@@ -158,7 +122,7 @@ class GeoIpLookupCommand(sublime_plugin.TextCommand):
 class DnsIpLookup(sublime_plugin.TextCommand):
     def run(self, edit):
         hostname = get_selections(self.view)[0]
-        addresses = get_addresses(hostname)
+        addresses = self.get_addresses(hostname)
         if addresses is not None:
             out_lines = []
             for address in addresses:
@@ -171,6 +135,41 @@ class DnsIpLookup(sublime_plugin.TextCommand):
             status_message((
                 "Either this name does not resolve or another "
                 "error has occurred. Check the console for more details."))
+
+    def get_addresses(self, hostname):
+        hostname = hostname.strip()
+        settings = sublime.load_settings(SETTINGS_FILE)
+
+        cmd = settings.get("ip_lookup_cmd")
+
+        # Do we actually have a lookup command configured?
+        if cmd is None:
+            error_message((
+                "No IPv4 Address lookup command is defined!\n"
+                "Please specify the 'ip_lookup_cmd' in the settings file.\n"
+                "Settings file: {}.".format(get_settings_path()))
+            )
+            return None
+
+        # Take our single string command line and split into the 
+        cmd = sublime.expand_variables(cmd, {"hostname": hostname})
+        command = cmd.split()
+
+        print("Dig IP lookup: {}".format(command))
+        print("Performing IPv4 address lookup on: {}".format(hostname))
+
+        try:
+            output = check_output(command)
+        except CalledProcessError as cpe:
+            status_message(str(cpe))
+            return None
+        except FileNotFoundError as fnfe:
+            error_message((
+                "Failed performing DNS lookup!\n"
+                "Your configured 'ip_lookup_cmd' doesn't apper to exist!."))
+            return None
+
+        return [l.decode('utf-8') for l in output.splitlines()]
 
     def copy_to_clipboard(self, href_content):
         if href_content:
