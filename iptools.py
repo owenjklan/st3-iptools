@@ -77,12 +77,6 @@ def geo_ip_lookup(ip):
     return ip_info
 
 
-def copy_to_clipboard(self, href_content):
-    if href_content:
-        sublime.set_clipboard(href_content)
-        self.view.hide_popup()
-
-
 def get_addresses(hostname):
     hostname = hostname.strip()
     settings = sublime.load_settings(SETTINGS_FILE)
@@ -177,6 +171,11 @@ class DnsIpLookup(sublime_plugin.TextCommand):
             status_message((
                 "Either this name does not resolve or another "
                 "error has occurred. Check the console for more details."))
+
+    def copy_to_clipboard(self, href_content):
+        if href_content:
+            sublime.set_clipboard(href_content)
+            self.view.hide_popup()
 
 
 class WhoisLookup(sublime_plugin.TextCommand):
