@@ -1,6 +1,7 @@
 import os
 import sys
 from subprocess import check_output, CalledProcessError
+import textwrap
 
 import sublime
 from sublime import error_message, status_message
@@ -132,7 +133,7 @@ class DnsIpLookup(sublime_plugin.TextCommand):
                                  flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
                                  on_navigate=self.copy_to_clipboard)
         else:
-            status_message((
+            error_message((
                 "Either this name does not resolve or another "
                 "error has occurred. Check the console for more details."))
 
@@ -170,6 +171,69 @@ class DnsIpLookup(sublime_plugin.TextCommand):
             return None
 
         return [l.decode('utf-8') for l in output.splitlines()]
+
+    def copy_to_clipboard(self, href_content):
+        if href_content:
+            sublime.set_clipboard(href_content)
+            self.view.hide_popup()
+
+
+class DnsTxtLookup(sublime_plugin.TextCommand):
+    def run(self, edit):
+        hostname = get_selections(self.view)[0]
+        records = self.get_text_records(hostname)
+        print(records)
+        if records is not None and len(records) > 0:
+            out_lines = []
+            for txt_record in records:
+                out_lines.append("{} <a href='{}'>Copy</a><br>".format(
+                    txt_record, txt_record))
+            self.view.show_popup("\n".join(out_lines),
+                                 flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY,
+                                 # min_width=400, min_height=500,
+                                 on_navigate=self.copy_to_clipboard)
+        elif len(records) == 0:
+            error_message(("No TXT records exist for {}".format(hostname)))
+        else:
+            error_message((
+                "Either this name does not resolve, has no TXT records or "
+                " another error has occurred. "
+                "Check the console for more details."))
+
+    def get_text_records(self, hostname):
+        hostname = hostname.strip()
+        settings = sublime.load_settings(SETTINGS_FILE)
+
+        cmd = settings.get("txt_lookup_cmd")
+
+        # Do we actually have a lookup command configured?
+        if cmd is None:
+            error_message((
+                "No TXT Record lookup command is defined!\n"
+                "Please specify the 'txt_lookup_cmd' in the settings file.\n"
+                "Settings file: {}.".format(get_settings_path()))
+            )
+            return None
+
+        # Take our single string command line and split into the 
+        cmd = sublime.expand_variables(cmd, {"hostname": hostname})
+        command = cmd.split()
+
+        print("Dig TXT lookup: {}".format(command))
+        print("Performing TXT record lookup on: {}".format(hostname))
+
+        try:
+            output = check_output(command)
+        except CalledProcessError as cpe:
+            status_message(str(cpe))
+            return None
+        except FileNotFoundError as fnfe:
+            error_message((
+                "Failed performing DNS TXT lookup!\n"
+                "Your configured 'txt_lookup_cmd' doesn't apper to exist!."))
+            return None
+
+        return [l.decode('utf-8') for l in output.splitlines() if len(l.strip()) > 0]
 
     def copy_to_clipboard(self, href_content):
         if href_content:

@@ -12,6 +12,10 @@
                 "command": "dns_ip_lookup"
             },
             {
+                "caption": "DNS TXT Record Lookup",
+                "command": "dns_txt_lookup"
+            },
+            {
                 "caption": "WHOIS Lookup",
                 "command": "whois_lookup"
             },
