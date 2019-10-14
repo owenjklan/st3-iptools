@@ -77,51 +77,6 @@ def geo_ip_lookup(ip):
     return ip_info
 
 
-def make_whois_request(view_edit, window, lookup_target):
-    """
-    Make a WHOIS request against https://whois.com
-    """
-    settings = sublime.load_settings(SETTINGS_FILE)
-
-    whois_url = settings.get("whois_lookup_url")
-    if whois_url is None:
-        error_message((
-            "No WHOIS lookup URL is defined!\n"
-            "Please specify the 'whois_lookup_url' in the settings file.\n"
-            "Settings file: {}.".format(get_settings_path()))
-        )
-        return None
-
-    target = lookup_target.strip()
-    try:
-        response = requests.get(sublime.expand_variables(
-            whois_url, {"lookup_target": target}),
-            timeout=5)
-    except requests.exceptions.ReadTimeout:
-        error_message("Timeout reading WHOIS response!")
-        return
-
-    if response.status_code != 200:
-        error_message("Failed WHOIS look up on '{}'".format(target))
-        print("--- WHOIS LOOKUP RESULT ---")
-        print(response.content)
-        print("---------------------------")
-        return
-
-    show_content = extract_raw_whois(response.content)
-    new_view = window.new_file()
-    new_view.set_name("WHOIS: {}".format(lookup_target))
-    new_view.insert(view_edit, 0, show_content)
-
-
-def extract_raw_whois(html_content):
-    """
-    Based on output of searches from https://whois.com
-    """
-    soup = BeautifulSoup(html_content)
-    return soup.find("pre", {"id": "registryData"}).text
-
-
 def get_addresses(hostname):
     hostname = hostname.strip()
     settings = sublime.load_settings(SETTINGS_FILE)
@@ -227,7 +182,51 @@ class WhoisLookup(sublime_plugin.TextCommand):
     def run(self, edit):
         target = get_selections(self.view)[0]
         if target:
-            make_whois_request(edit, self.view.window(), target)
+            self.make_whois_request(edit, self.view.window(), target)
+
+    def make_whois_request(self, view_edit, window, lookup_target):
+        """
+        Make a WHOIS request against https://whois.com
+        """
+        settings = sublime.load_settings(SETTINGS_FILE)
+
+        whois_url = settings.get("whois_lookup_url")
+        if whois_url is None:
+            error_message((
+                "No WHOIS lookup URL is defined!\n"
+                "Please specify the 'whois_lookup_url' in the settings file.\n"
+                "Settings file: {}.".format(get_settings_path()))
+            )
+            return None
+
+        target = lookup_target.strip()
+        try:
+            response = requests.get(sublime.expand_variables(
+                whois_url, {"lookup_target": target}),
+                timeout=5)
+        except requests.exceptions.ReadTimeout:
+            error_message("Timeout reading WHOIS response!")
+            return
+
+        if response.status_code != 200:
+            error_message("Failed WHOIS look up on '{}'".format(target))
+            print("--- WHOIS LOOKUP RESULT ---")
+            print(response.content)
+            print("---------------------------")
+            return
+
+        show_content = self.extract_raw_whois(response.content)
+        new_view = window.new_file()
+        new_view.set_name("WHOIS: {}".format(lookup_target))
+        new_view.insert(view_edit, 0, show_content)
+
+
+    def extract_raw_whois(self, html_content):
+        """
+        Based on output of searches from https://whois.com
+        """
+        soup = BeautifulSoup(html_content)
+        return soup.find("pre", {"id": "registryData"}).text
 
 
 class ValidateIpToolsConfigCommand(sublime_plugin.TextCommand):
