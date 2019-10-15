@@ -77,13 +77,32 @@ def geo_ip_lookup(ip):
     ip_url = GEOIP_URL.format(ip)
 
     print("{} verify SSL".format("Will" if ssl_verify else "Won't"))
-    response = requests.get(ip_url, verify=ssl_verify)
+    try:
+        response = requests.get(ip_url, timeout=5, verify=ssl_verify)
+    except requests.exceptions.ReadTimeout:
+        error_message("Timeout reading GeoIP lookup response!")
+        return
+    except requests.exceptions.SSLError as ssle:
+        if "verify failed" in str(ssle):
+            display_ssl_verify_error()
+            return
+        error_message(("An SSL Error occurred!"))
 
     try:
         ip_info = response.json()
     except ValueError as ve:
         return None
     return ip_info
+
+
+def display_ssl_verify_error():
+    sublime.error_message((
+        "A request to a HTTPS service has failed due to SSL verification "
+        "errors. This may indicate that you are on a corporate or "
+        "educational network, behind an SSL-intercepting proxy. To remedy "
+        "this, you can disable SSL verification under the IPTools context"
+        " menu."
+    ))
 
 
 class GeoIpLookupCommand(sublime_plugin.TextCommand):
@@ -279,6 +298,11 @@ class WhoisLookup(sublime_plugin.TextCommand):
         except requests.exceptions.ReadTimeout:
             error_message("Timeout reading WHOIS response!")
             return
+        except requests.exceptions.SSLError as ssle:
+            if "verify failed" in str(ssle):
+                display_ssl_verify_error()
+                return
+            error_message(("An SSL Error occurred!"))
 
         if response.status_code != 200:
             error_message("Failed WHOIS look up on '{}'".format(target))
