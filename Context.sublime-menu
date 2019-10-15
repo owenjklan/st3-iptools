@@ -23,6 +23,14 @@
                 "caption": "-",
             },
             {
+                "caption": "Verify SSL Requests",
+                "command": "set_ssl_verify",
+                "checkbox": true
+            },
+            {
+                "caption": "-",
+            },
+            {
                 "caption": "Validate Settings",
                 "command": "validate_ip_tools_config"
             }

@@ -27,6 +27,10 @@ IP_INFO_TEMPLATE = """
 </div>
 """
 
+# Used to indicate whether HTTPS requests made with requests library should
+# care about SSL Verification
+ssl_verify = True
+
 
 def check_ip_lookup_cmd(value):
     pass
@@ -53,7 +57,10 @@ def modify_sys_path(newpath):
 
 
 def plugin_loaded():
-    pass
+    global ssl_verify
+    settings = sublime.load_settings(SETTINGS_FILE)
+    ssl_verify = settings.get("requests_verify_ssl")
+    # print("ssl_verify: ", ssl_verify)
 
 
 def get_settings_path():
@@ -69,7 +76,8 @@ def geo_ip_lookup(ip):
 
     ip_url = GEOIP_URL.format(ip)
 
-    response = requests.get(ip_url)
+    print("{} verify SSL".format("Will" if ssl_verify else "Won't"))
+    response = requests.get(ip_url, verify=ssl_verify)
 
     try:
         ip_info = response.json()
@@ -264,9 +272,10 @@ class WhoisLookup(sublime_plugin.TextCommand):
 
         target = lookup_target.strip()
         try:
+            print("{} verify SSL".format("Will" if ssl_verify else "Won't"))
             response = requests.get(sublime.expand_variables(
                 whois_url, {"lookup_target": target}),
-                timeout=5)
+                timeout=5, verify=ssl_verify)
         except requests.exceptions.ReadTimeout:
             error_message("Timeout reading WHOIS response!")
             return
@@ -283,13 +292,26 @@ class WhoisLookup(sublime_plugin.TextCommand):
         new_view.set_name("WHOIS: {}".format(lookup_target))
         new_view.insert(view_edit, 0, show_content)
 
-
     def extract_raw_whois(self, html_content):
         """
         Based on output of searches from https://whois.com
         """
         soup = BeautifulSoup(html_content)
         return soup.find("pre", {"id": "registryData"}).text
+
+
+class SetSslVerifyCommand(sublime_plugin.WindowCommand):
+    def run(self):
+        global ssl_verify
+        if ssl_verify:
+            ssl_verify = False
+        else:
+            ssl_verify = True
+        settings = sublime.load_settings(SETTINGS_FILE)
+        settings.set("requests_verify_ssl", ssl_verify)
+
+    def is_checked(self):
+        return ssl_verify
 
 
 class ValidateIpToolsConfigCommand(sublime_plugin.TextCommand):

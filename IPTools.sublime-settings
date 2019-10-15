@@ -1,5 +1,6 @@
 {
     "ip_lookup_cmd": "/usr/bin/dig -t a ${hostname} +short",
     "txt_lookup_cmd": "/usr/bin/dig -t txt ${hostname} +short",
-    "whois_lookup_url": "https://whois.com/search.php?query=${lookup_target}"
+    "whois_lookup_url": "https://whois.com/search.php?query=${lookup_target}",
+    "requests_verify_ssl": true
 }
