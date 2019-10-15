@@ -297,14 +297,27 @@ class WhoisLookup(sublime_plugin.TextCommand):
         Based on output of searches from https://whois.com
         """
         soup = BeautifulSoup(html_content)
-        return soup.find("pre", {"id": "registryData"}).text
+        raw_content = soup.find("pre", {"id": "registryData"})
+
+        if raw_content is None:
+            # Try looking for "registrarData"
+            raw_content = soup.find("pre", {"id": "registrarData"})
+
+        return raw_content.text.replace('\r\n', '\n')
 
 
 class SetSslVerifyCommand(sublime_plugin.WindowCommand):
     def run(self):
         global ssl_verify
         if ssl_verify:
-            ssl_verify = False
+            # Alert to be sure this is what the user wants to do
+            confirm_disable_verify = sublime.ok_cancel_dialog(
+                ("Disabling SSL Verification can open you up to security "
+                 "risks! Only disable this if you know what you're doing."),
+                ok_title="Disable Verification"
+            )
+            if confirm_disable_verify == True:
+                ssl_verify = False
         else:
             ssl_verify = True
         settings = sublime.load_settings(SETTINGS_FILE)
